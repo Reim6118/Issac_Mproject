@@ -56,20 +56,7 @@ def detect(save_img=False):
     stride = int(model.stride.max())  # model stride
     imgsz = check_img_size(imgsz, s=stride)  # check img_size
 
-    if trace:
-        model = TracedModel(model, device, opt.img_size)
-        contact_model = TracedModel(contact_model, device, opt.img_size)
-
-    if half:
-        model.half()  # to FP16
-        contact_model.half()
-
-    # Second-stage classifier
-    classify = False
-    if classify:
-        modelc = load_classifier(name='resnet101', n=2)  # initialize
-        modelc.load_state_dict(torch.load('weights/resnet101.pt', map_location=device)['model']).to(device).eval()
-
+   
     # Set Dataloader
     vid_path, vid_writer = None, None
     if webcam:
@@ -97,7 +84,7 @@ def detect(save_img=False):
         if img.ndimension() == 3:
             img = img.unsqueeze(0)
 
-        #  Warmup
+        # Warmup
         if device.type != 'cpu' and (old_img_b != img.shape[0] or old_img_h != img.shape[2] or old_img_w != img.shape[3]):
             old_img_b = img.shape[0]
             old_img_h = img.shape[2]
@@ -115,10 +102,7 @@ def detect(save_img=False):
         pred = non_max_suppression(pred, opt.conf_thres, opt.iou_thres, classes=opt.classes, agnostic=opt.agnostic_nms)
         t3 = time_synchronized()
 
-        # Apply Classifier
-        if classify:
-            pred = apply_classifier(pred, modelc, img, im0s)
-
+       
         # Process detections
         for i, det in enumerate(pred):  # detections per image
             if webcam:  # batch_size >= 1
