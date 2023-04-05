@@ -11,9 +11,9 @@ count =0
 # results = model.predict(source="0")
 results = model.predict(source=r"C:\Users\issac\Documents\ML\output1.mp4", save =False, save_crop = False) # Display preds. Accepts all YOLO predict arguments
 fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-out = cv2.VideoWriter('crop_mask4'+'.mp4',fourcc,30.0,(1920, 1080))
-#out2 = cv2.VideoWriter('crop_original'+'.mp4',fourcc,30.0,(1920, 1080))
-#cap = cv2.VideoCapture(r"C:\Users\issac\Documents\badminton4.mp4")
+# out = cv2.VideoWriter('crop_mask4'+'.mp4',fourcc,30.0,(1920, 1080))
+out2 = cv2.VideoWriter('crop_original'+'.mp4',fourcc,30.0,(1920, 1080))
+cap = cv2.VideoCapture(r"C:\Users\issac\Documents\badminton2.mp4")
 
 # for result in results:
 #     cv2.imshow('result',result.masks)
@@ -29,32 +29,33 @@ out = cv2.VideoWriter('crop_mask4'+'.mp4',fourcc,30.0,(1920, 1080))
 #     out.write(mask)
 # out.release()
 for result in results:
-    # ret, frame = cap.read()
-    mask = np.ones(result.orig_img.shape,dtype= result.orig_img.dtype)
-    #mask2 = np.ones(frame.shape,dtype= frame.dtype)
+    ret, frame = cap.read()
+    # mask = np.ones(result.orig_img.shape,dtype= result.orig_img.dtype)
+    mask2 = np.ones(frame.shape,dtype= frame.dtype)
 
-    mask[:,:] = [255,255,255] 
-    print(mask.shape)
+    # mask[:,:] = [255,255,255]
+    mask2[:,:] = [255,255,255] 
+    # print(mask.shape)
     
     for bbox in result.boxes.xyxy:
         x1, y1, x2, y2 = bbox[0].item(), bbox[1].item(), bbox[2].item(), bbox[3].item()
-        crop_image=result.orig_img[int(y1):int(y2),int(x1):int(x2)]
-        #crop_original=frame[int(y1):int(y2),int(x1):int(x2)]
-        print("crop image shape=",crop_image.shape)
+        # crop_image=result.orig_img[int(y1):int(y2),int(x1):int(x2)]
+        crop_original=frame[int(y1):int(y2),int(x1):int(x2)]
+        # print("crop image shape=",crop_image.shape)
         # rgb_crop = cv2.cvtColor(crop_image,cv2.COLOR_GRAY2RGB)
         # print("rgb crop image shape=",rgb_crop.shape)
-        mask[int(y1):int(y2),int(x1):int(x2)] = crop_image
-        #mask2[int(y1):int(y2),int(x1):int(x2)] = crop_original
-    print("mask shape after=",mask.shape)
-    #print("mask2 shape",mask2.shape)
+        # mask[int(y1):int(y2),int(x1):int(x2)] = crop_image
+        mask2[int(y1):int(y2),int(x1):int(x2)] = crop_original
+    # print("mask shape after=",mask.shape)
+    print("mask2 shape",mask2.shape)
     
     # count+=1
     # print("count=",count)
     # cv2.imwrite('C:/Users/issac/Documents/ML/Yolov8/SBadminton_mask/frame_'+str(count)+'.jpg', mask)
-    out.write(mask)
-    #out2.write(mask2)
-out.release()
-#out2.release()
+    # out.write(mask)
+    out2.write(mask2)
+# out.release()
+out2.release()
 
 
 # # from PIL
