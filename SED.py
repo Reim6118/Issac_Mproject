@@ -36,7 +36,7 @@ def LoadAudio(path,Sr,mels,fft,hop_length): #0,1,2,3
 
 
 
-def make_continious_labels(data, length, time_resolution, i):
+def labeling(data, length, time_resolution, i):
     """
     Create a continious vector for the event labels that matches the time format of our spectrogram
     

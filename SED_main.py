@@ -31,29 +31,23 @@ n_fft = next_power_of_2(hop_length)
 
 spec = sed.LoadAudio(audiopath,sr,n_mels,n_fft,hop_length)
 data = sed.LoadCsv(csvpath)
-# print("spec shape = ",spec)
-# print("data event = ",data[data['file'] == 1])
-l = sed.make_continious_labels(data, spec, time_resolution,file_count)
+
+l = sed.labeling(data, spec, time_resolution,file_count) #make the label to be continuous even data without event
 print(l["1"].event.value_counts())  #find how many label of hit in all timeframe
 fig, ax = plt.subplots(1, figsize=(20, 5))
-# print("datatype=",type(l["1"]))
 plot_spectrogram(hop_length,samplerate,ax, spec[0], data[data['file'] == 1],l["1"])
 plt.show()
-# for key in l.keys():
-#     print("key=",key)
+
+print("Array shape= ", l["1"].shape)
 ######
 # l is dictionary, data is dataframe, spec is list
 ######
 
 
-fig, ax = plt.subplots(1, figsize=(30, 5))
-plot_spectrogram(hop_length,samplerate,ax, spec[0], data[data['file'] == 1], l["1"])
-ax.set_xlim(0, 15)
-plt.show()
-#plot spect 還沒看懂
-
-
-# plt.hist(data['duration'],width=0.10, range=(0, 1.0))
+# fig, ax = plt.subplots(1, figsize=(30, 5))
+# plot_spectrogram(hop_length,samplerate,ax, spec[0], data[data['file'] == 1], l["1"])
+# ax.set_xlim(0, 15)
 # plt.show()
-# Extract the data from the identified columns
-# print(data)
+
+
+
