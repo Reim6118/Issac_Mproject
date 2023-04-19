@@ -71,7 +71,7 @@ def labeling(data, length, time_resolution, i):
             df.loc[s:e, "event"] = 1
         dataframes[str(i)] = df
         print(dataframes)
-        # print("i = ", i)
+        print("i = ", i)
     
     return dataframes
 
@@ -104,5 +104,30 @@ def plot_spectrogram(hop_length,samplerate,ax, spec, events=None, label_activati
             
         label_ax.axhline(0.5, ls='--', color='black', alpha=0.5, lw=2.0)
             
+def crop_windows(arr, frames, pad_value=0.0, overlap=0.5, step=None):
+    if step is None:
+        step = int(frames * (1-overlap))
+        
+    windows = []
+    index = []
+        
+    width, length = arr.shape
+    
+    for start_idx in range(0, length, step):
+        end_idx = min(start_idx + frames, length)
 
+        # create emmpty
+        win = np.full((width, frames), pad_value, dtype=float)
+        # fill with data
+        win[:, 0:end_idx-start_idx] = arr[:,start_idx:end_idx]  # crop a fix frame from start index till start index +n
+
+        windows.append(win)
+        index.append(start_idx)
+
+    s = pd.Series(windows, index=index)
+    s.index.name = 'start_index'
+    return s
+
+
+  
  
