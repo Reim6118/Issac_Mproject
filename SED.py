@@ -32,11 +32,11 @@ def LoadAudio(path,Sr,mels,fft,hop_length): #0,1,2,3
         Sdb = lb.power_to_db(Spec, ref=np.max)
         print("SDB shape = ",Sdb.shape)
         Sdb_List.append(Sdb)
-    return Sdb_List
+    return audio_files, Sdb_List
 
 
 
-def labeling(data, length, time_resolution, i):
+def labeling(originaldata, length, time_resolution, i):
     """
     Create a continious vector for the event labels that matches the time format of our spectrogram
     
@@ -44,7 +44,7 @@ def labeling(data, length, time_resolution, i):
     """
     dataframes = {}
     for i in range(1,i+1):       
-        data = data[data['file'] == i]
+        data = originaldata[originaldata['file'] == i]
         freq = pd.Timedelta(seconds=time_resolution)
         
         # Create empty covering entire spectrogram
@@ -130,4 +130,28 @@ def crop_windows(arr, frames, pad_value=0.0, overlap=0.5, step=None):
 
 
   
- 
+def plot_windows( wins,hop_length, samplerate, col_wrap=None, height=4, aspect=1):
+    specs = wins.spectrogram
+    
+    nrow = 1
+    ncol = len(specs)
+    if col_wrap is not None:
+        nrow = int(np.ceil(ncol / col_wrap))
+        ncol = col_wrap
+
+    fig_height = height * nrow
+    fig_width = height * aspect * ncol
+    fig, axs = plt.subplots(ncol, nrow, sharex=True, sharey=True, figsize=(fig_width, fig_height))
+    axs = np.array(axs).flatten()
+    
+    fig.suptitle(specs.name)
+    for ax, s, l in zip(axs, specs, wins.labels):
+    
+        l = np.squeeze(l)
+        ll = pd.DataFrame({
+            'event': l,
+            'time': pd.to_timedelta(np.arange(l.shape[0])*hop_length/samplerate, unit='s'),
+        })
+
+        plot_spectrogram(hop_length,samplerate,ax, s, label_activations=ll)
+        
