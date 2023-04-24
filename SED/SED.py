@@ -154,4 +154,50 @@ def plot_windows( wins,hop_length, samplerate, col_wrap=None, height=4, aspect=1
         })
 
         plot_spectrogram(hop_length,samplerate,ax, s, label_activations=ll)
-        
+
+def split_data(data, val_size=0.25, test_size=0.25, random_state=3, column='split'):
+    """
+    Split DataFrame into 3 non-overlapping parts: train,val,test
+    with specified proportions
+    
+    Returns a new DataFrame with the rows marked by the assigned split in @column
+    """
+
+    data = data.sample(frac=1).reset_index(drop = True)
+    train_size = (1.0 - val_size - test_size)
+
+    train_stop = int(len(data) * train_size)
+    val_stop = train_stop + int(len(data)*val_size)
+    
+    train_idx = data.index[0:train_stop]
+    val_idx = data.index[train_stop:val_stop]
+    test_idx = data.index[val_stop:-1]
+    
+    data = data.copy()
+    data.loc[train_idx, column] = 'train'
+    data.loc[val_idx, column] = 'val'
+    data.loc[test_idx, column] = 'test'
+
+    # train_size = (1.0 - val_size - test_size)
+
+    # train_stop = int(len(data) * train_size)
+    # val_stop = train_stop + int(len(data)*val_size)
+    
+    
+    # train_idx = data.sample(n=train_stop)       # random all * 0.5
+    # print("train stop" , train_stop)
+    # print("Train index=",len(train_idx))
+    # left = data.drop(train_idx.index)  
+    # print("len left",len(left))         # left half                
+    # val_idx = left.sample(n = int(len(left)*0.5))      #
+    # test_idx= left.drop(val_idx.index)
+    
+    # train_idx[column] = 'train'
+    # val_idx[column] = 'val'
+    # test_idx[column] = 'test'
+    # data = pd.concat([train_idx,val_idx,test_idx])
+
+    
+
+    return data
+    
