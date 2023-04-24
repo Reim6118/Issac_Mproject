@@ -201,3 +201,25 @@ def split_data(data, val_size=0.25, test_size=0.25, random_state=3, column='spli
 
     return data
     
+def merge_overlapped_predictions(window_predictions, window_hop):
+    
+    # flatten the predictions from overlapped windows
+    predictions = []
+    for win_no, win_pred in enumerate(window_predictions):
+        win_start = window_hop * win_no
+        for frame_no, p in enumerate(win_pred):
+            s = {
+                'frame': win_start + frame_no,
+                'probability': p,
+            }
+        
+            predictions.append(s)
+        
+    df = pd.DataFrame.from_records(predictions)
+    df['time'] = pd.to_timedelta(df['frame'] * 0.10, unit='s')
+    df = df.drop(columns=['frame'])
+    
+    # merge predictions from multiple windows 
+    out = df.groupby('time').median()
+    return out
+

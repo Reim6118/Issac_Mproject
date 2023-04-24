@@ -12,6 +12,7 @@ import pandas as pd
 import numpy as np
 import librosa as lb
 import soundfile as sf
+from SED import *
 from more_itertools import chunked 
 from matplotlib import pyplot as plt
 
@@ -22,7 +23,7 @@ import tensorflow.math
 # Eye Gaze Range to Tactile Sensations: A Novel Approach for Enhancing Accessibility and Human-Computer Interaction"
 #####Hapticizing Visual Action Events: A Framework for Converting Events Occurring within Eye Gaze Range to Tactile Sensations
 
-file_count = 5  #Change heree when additional files
+file_count = 1  #Change heree when additional files
 sr = 16000
 n_mels=32 
 # n_fft=1024 
@@ -30,10 +31,10 @@ n_mels=32
 time_resolution = 0.10
 batch_size=4
 samplerate = 16000
-# csvpath = r"C:\Users\issac\Documents\ML\Badminton_sound\annotations.csv"
-# audiopath = r"C:\Users\issac\Documents\ML\Badminton_sound\annotations"
-csvpath = r"C:\Users\issac\Documents\ML\Badminton_sound\sound.csv"
-audiopath = r"C:\Users\issac\Documents\ML\Badminton_sound\audio_wav"
+csvpath = r"C:\Users\issac\Documents\ML\Badminton_sound\annotations.csv"
+audiopath = r"C:\Users\issac\Documents\ML\Badminton_sound\annotations"
+# csvpath = r"C:\Users\issac\Documents\ML\Badminton_sound\sound.csv"
+# audiopath = r"C:\Users\issac\Documents\ML\Badminton_sound\audio_wav"
 window_duration = 0.801 
 window_length = int(window_duration / time_resolution)
 
@@ -74,7 +75,7 @@ append_windows.groupby('event').sample(n=20).groupby('event').apply(sed.plot_win
 # l is dictionary: 1,2,3,4 , data is dataframe, spec is list : 0,1,2,3, audiofiles is list: 0,1,2,3
 ######
 splitData = sed.split_data(append_windows)
-# plt.show()
+plt.show()
 
 ###########################
 #model1 ##################
@@ -84,7 +85,7 @@ model = sedm.build_model(input_shape=(window_length, 32, 1))
 model.summary()
   
 
-epochs = 3000
+epochs = 1200
 batch_size = 10*64
 
 from tqdm.keras import TqdmCallback
@@ -160,7 +161,67 @@ def plot_history(history):
     axs[0].set_ylim(0, 1.0)
 
 plot_history(hist)
+
+
+test = get_XY(split='test')
+
+results = pd.DataFrame({
+    'split': [ 'test', 'train', 'val' ],
+})
+def get_metric(split):
+    X, Y = get_XY(split=split)
+    r = model.evaluate(x=X, y=Y, return_dict=True, verbose=False)
+    return pd.Series(r)
+
+e = results.split.apply(get_metric)
+results = pd.merge(results, e, right_index=True, left_index=True).set_index('split')
+
+from sklearn.metrics import PrecisionRecallDisplay
+
+fig, ax = plt.subplots(1)
+
+for split in results.reset_index().split.unique():
+    X, Y = get_XY(split)
+    
+    y_true = Y
+    y_pred = model.predict(X, verbose=False)
+    
+    y_true = np.any(y_true, axis=1)
+    y_pred = np.max(y_pred, axis=1)
+    
+    PrecisionRecallDisplay.from_predictions(ax=ax, y_true=y_true, y_pred=y_pred, name=split)
+
+ax.axhline(0.9, ls='--', color='black', alpha=0.5)
+ax.axvline(0.9, ls='--', color='black', alpha=0.5)
+
+def predict_spectrogram(model, spec,window_length):
+    
+    # prepare input data. NOTE: must match the training preparation in getXY
+    window_hop = 1
+    wins = sed.crop_windows(spec, frames=window_length, step=window_hop)       
+    X = np.expand_dims(np.stack( [ (w-Xm).T for w in wins ]), -1)
+    
+    # make predictions on windows
+    y = np.squeeze(model.predict(X, verbose=False))
+    
+    out = sed.merge_overlapped_predictions(y, window_hop=window_hop)
+
+    return out
+
+
+##目前只是用第一個file做結果的測試而已
+predictions = predict_spectrogram(model,spec[0],window_length)
+fig, ax = plt.subplots(1, figsize=(30, 5))
+sed.plot_spectrogram(hop_length,samplerate,ax, spec[0],  data[data['file'] == 1],l["1"], predictions)
+
+
+
+
 plt.show()
+
+
+
+
 
 #####################
 ########model2######
