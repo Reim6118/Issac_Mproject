@@ -34,6 +34,20 @@ def LoadAudio(path,Sr,mels,fft,hop_length): #0,1,2,3
         Sdb_List.append(Sdb)
     return audio_files, Sdb_List
 
+import moviepy.editor as mp
+def LoadFromVid(path,Sr,mels,fft,hop_length): #0,1,2,3
+    # audio_files = lb.util.find_files(path)
+    video = mp.VideoFileClip(path)
+    audio = video.audio
+    temp = "Combine_test/temp.wav"
+    audio.write_audiofile(temp)
+    
+    y, sr = lb.load(temp, sr=16000)
+    Spec = lb.feature.melspectrogram(y=y, sr=Sr, n_mels=mels,n_fft=fft,hop_length=hop_length)
+    Sdb = lb.power_to_db(Spec, ref=np.max)
+    print("SDB shape = ",Sdb.shape)
+    return temp,Sdb
+
 
 
 def labeling(originaldata, length, time_resolution, i):
@@ -162,7 +176,7 @@ def split_data(data, val_size=0.25, test_size=0.25, random_state=3, column='spli
     
     Returns a new DataFrame with the rows marked by the assigned split in @column
     """
-
+        ##original##
     data = data.sample(frac=1).reset_index(drop = True)
     train_size = (1.0 - val_size - test_size)
 
@@ -177,7 +191,7 @@ def split_data(data, val_size=0.25, test_size=0.25, random_state=3, column='spli
     data.loc[train_idx, column] = 'train'
     data.loc[val_idx, column] = 'val'
     data.loc[test_idx, column] = 'test'
-
+        ###mine randomize##
     # train_size = (1.0 - val_size - test_size)
 
     # train_stop = int(len(data) * train_size)
@@ -201,6 +215,16 @@ def split_data(data, val_size=0.25, test_size=0.25, random_state=3, column='spli
 
     return data
     
+def split_data2(data, val_size=0.25, test_size=0.25, random_state=3, column='split'):
+
+   
+    data = data.sample(frac=1).reset_index(drop = True)
+    val_stop = 0
+    test_idx = data.index[val_stop:-1]
+
+    data = data.copy()
+    data.loc[test_idx, column] = 'test'
+    return data
 def merge_overlapped_predictions(window_predictions, window_hop):
     
     # flatten the predictions from overlapped windows
@@ -223,3 +247,73 @@ def merge_overlapped_predictions(window_predictions, window_hop):
     out = df.groupby('time').median()
     return out
 
+def events_from_predictions(pred, threshold=0.1, label='Hit', event_duration_max=1.0,fps =30):
+    import copy
+    
+    event_duration_max = pd.Timedelta(event_duration_max, unit='s')
+    
+    events = []
+    inside_event = False
+    event = {
+        'start': None,
+        'end': None,
+    }
+    
+    for t, r in pred.iterrows():
+        p = r['probability']
+
+        # basic state machine for producing events
+        if not inside_event and p > threshold:
+            event['start'] = int(t.total_seconds()  *fps)  #Modify here to calculate which frame it is in
+            inside_event = True
+            
+        elif inside_event and ((p < threshold) or ((t - pd.Timedelta(seconds=event['start']/fps)) > event_duration_max)):
+            event['end'] = int(t.total_seconds() *fps)
+            events.append(copy.copy(event))
+            
+            inside_event = False
+            event['start'] = None
+            event['end'] = None
+        else:
+            pass
+    
+    if len(events):
+        df = pd.DataFrame.from_records(events)
+    else:
+        df = pd.DataFrame([], columns=['start', 'end'], dtype='timedelta64[ns]')
+    df['label'] = label
+    return df
+
+def predict_spectrogram(model, spec,window_length ,Xm):
+    
+    # prepare input data. NOTE: must match the training preparation in getXY
+    window_hop = 1
+    wins = crop_windows(spec, frames=window_length, step=window_hop)       
+    X = np.expand_dims(np.stack( [ (w-Xm).T for w in wins ]), -1)
+    
+    # make predictions on windows
+    y = np.squeeze(model.predict(X, verbose=False))
+    
+    out = merge_overlapped_predictions(y, window_hop=window_hop)
+
+    return out
+import tensorflow.keras.backend as K
+
+def weighted_binary_crossentropy(zero_weight, one_weight):
+    """
+    Loss with support for specifying class weights
+    """
+    
+    
+    def weighted_binary_crossentropy(y_true, y_pred):
+
+        # standard cross entropy
+        b_ce = K.binary_crossentropy(y_true, y_pred)
+
+        # apply weighting
+        weight_vector = y_true * one_weight + (1 - y_true) * zero_weight
+        weighted_b_ce = weight_vector * b_ce
+
+        return K.mean(weighted_b_ce)
+
+    return weighted_binary_crossentropy

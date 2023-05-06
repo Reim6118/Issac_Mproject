@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 # create a VideoCapture object to read the input video
 #cap = cv2.VideoCapture(r"C:\Users\issac\Documents\badminton1.mp4")
-cap = cv2.VideoCapture(r"C:\Users\issac\Documents\badminton2.mp4")
+cap = cv2.VideoCapture(r"C:\Users\issac\Documents\ML\Combine_test\badminton2.mp4")
 fps = cap.get(cv2.CAP_PROP_FPS)
 
 print("FPS:", fps)
@@ -34,13 +34,13 @@ while True:
     saliencyMap = (saliencyMap * 255).astype("uint8")
     
     # show the output
-    #Save each frame into jpg
-    # if ret == True:
-    #     count+=1
-    #     print("count=",count)
-    #     cv2.imwrite('C:/Users/issac/Documents/ML/Yolov8/Saliency_Badminton2/frame_'+str(count)+'.jpg', saliencyMap)
-    out.write(saliencyMap)
-    cv2.imshow('Motion Saliency Map', saliencyMap)
+    # Save each frame into jpg
+    if ret == True:
+        count+=1
+        print("count=",count)
+        cv2.imwrite('C:/Users/issac/Documents/ML/Yolov8/Saliency_Badminton2/frame_'+str(count)+'.jpg', saliencyMap)
+    # out.write(saliencyMap)
+    # cv2.imshow('Motion Saliency Map', saliencyMap)
     
     
     if cv2.waitKey(1) == ord('q'):

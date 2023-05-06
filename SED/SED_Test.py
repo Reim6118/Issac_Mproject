@@ -35,6 +35,8 @@ samplerate = 16000
 # audiopath = r"C:\Users\issac\Documents\ML\Badminton_sound\crop"
 csvpath = r"C:\Users\issac\Documents\ML\Badminton_sound\sound.csv"
 audiopath = r"C:\Users\issac\Documents\ML\Badminton_sound\audio_wav"
+# csvpath = r"C:\Users\issac\Documents\ML\Badminton_sound\test2.csv"
+# audiopath = r"C:\Users\issac\Documents\ML\Badminton_sound\test2"
 window_duration = 0.801 
 window_length = int(window_duration / time_resolution)
 
@@ -50,8 +52,8 @@ data = sed.LoadCsv(csvpath)
 l = sed.labeling(data, spec, time_resolution,file_count) #make the label to be continuous even data without event
 print(l["1"].event.value_counts())  #find how many label of hit in all timeframe
 fig, ax = plt.subplots(1, figsize=(20, 5))
-sed.plot_spectrogram(hop_length,samplerate,ax, spec[0], data[data['file'] == 1],l["1"])
-#plt.show()
+# sed.plot_spectrogram(hop_length,samplerate,ax, spec[0], data[data['file'] == 1],l["1"])
+# plt.show()
 
 print("Array shape= ", l["1"].shape)
 append_windows = pd.DataFrame()  #create empty dataframe
@@ -75,18 +77,40 @@ append_windows.groupby('event').sample(n=20).groupby('event').apply(sed.plot_win
 # l is dictionary: 1,2,3,4 , data is dataframe, spec is list : 0,1,2,3, audiofiles is list: 0,1,2,3
 ######
 splitData = sed.split_data(append_windows)
-plt.show()
+# plt.show()
 
 ###########################
 #model1 ##################
 ###########################
+import tensorflow.keras.backend as K
+from keras.utils import custom_object_scope
+from keras.models import load_model
+def weighted_binary_crossentropy(zero_weight, one_weight):
+    """
+    Loss with support for specifying class weights
+    """
+    
+    
+    def weighted_binary_crossentropy(y_true, y_pred):
 
-model = sedm.build_model(input_shape=(window_length, 32, 1))
+        # standard cross entropy
+        b_ce = K.binary_crossentropy(y_true, y_pred)
+
+        # apply weighting
+        weight_vector = y_true * one_weight + (1 - y_true) * zero_weight
+        weighted_b_ce = weight_vector * b_ce
+
+        return K.mean(weighted_b_ce)
+
+    return weighted_binary_crossentropy
+
+with custom_object_scope( {'weighted_binary_crossentropy':weighted_binary_crossentropy}):
+
+    model = load_model(r'C:\Users\issac\Documents\ML\Badminton_sound\model\7file(10000).h5')
 model.summary()
   
 
-epochs = 6000
-batch_size = 10*64
+
 
 from tqdm.keras import TqdmCallback
 
@@ -94,105 +118,48 @@ from tqdm.keras import TqdmCallback
 # # # Used for spectral subtraction, a type of preprocessing/normalization technique that is often useful
 Xm = np.expand_dims(np.mean(np.concatenate([s.T for s in splitData.spectrogram]), axis=0), -1)
 
-def get_XY(split):
-    # convenience to convert
-    d = splitData[splitData.split == split]
+# def get_XY(split):
+#     # convenience to convert
+#     d = splitData[splitData.split == split]
     
-    X = np.expand_dims(np.stack([(s-Xm).T for s in d.spectrogram]), -1)
+#     X = np.expand_dims(np.stack([(s-Xm).T for s in d.spectrogram]), -1)
 
-    Y = np.stack([ l.T for l in d.labels], axis=0)    
-    return X, Y
+#     Y = np.stack([ l.T for l in d.labels], axis=0)    
+#     return X, Y
 
-train = get_XY(split='train')
-val = get_XY(split='val')
+# train = get_XY(split='train')
+# val = get_XY(split='val')
 
-def compute_class_weights(y_train):
-    from sklearn.utils import class_weight
-    y_train = np.squeeze(y_train).astype(int)
-    y_train = np.any(y_train, axis=1)
-    w = class_weight.compute_class_weight('balanced', classes=np.unique(y_train), y=y_train)
-    #w_dict = dict(zip(numpy.unique(y_train), w))
-    return w
+# test = get_XY(split='test')
 
-class_weights = compute_class_weights(train[1])
-#class_weights = None # disable class weights
-print('Class weights', class_weights)
+# results = pd.DataFrame({
+#     'split': [ 'test', 'train', 'val' ],
+# })
+# def get_metric(split):
+#     X, Y = get_XY(split=split)
+#     r = model.evaluate(x=X, y=Y, return_dict=True, verbose=False)
+#     return pd.Series(r)
 
-# make sure to stop when model does not improve anymore / starts overfitting
-early_stop = tensorflow.keras.callbacks.EarlyStopping(monitor='val_loss', patience=50)
-progress_bar = TqdmCallback()
+# e = results.split.apply(get_metric)
+# results = pd.merge(results, e, right_index=True, left_index=True).set_index('split')
 
+# from sklearn.metrics import PrecisionRecallDisplay
 
-def schedule(epoch, lr):
-    if epoch < 100:
-        return lr
-    else:
-        return lr * tensorflow.math.exp(-0.1)
+# fig, ax = plt.subplots(1)
 
-lr_callback = tensorflow.keras.callbacks.LearningRateScheduler(schedule)
-
-#lr_callback = tensorflow.keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=20, min_lr=0.01)
-
-model = sedm.build_model(input_shape=(window_length, 32, 1), dropout=0.10, lr=1*0.001, class_weights=class_weights)
-
-hist = model.fit(x=train[0], y=train[1],
-        validation_data=val,
-        epochs=epochs,
-        batch_size=batch_size,
-        callbacks=[
-            progress_bar,
-            #lr_callback,
-            #early_stop,
-        ],
-        verbose=False, # using progress bar callback instead
-)
-
-def plot_history(history):
-
-    fig, axs = plt.subplots(ncols=2, figsize=(10, 4))
-    history = pd.DataFrame(hist.history)
-    history.index.name = 'epoch'
-    history.plot(ax=axs[0], y=['loss', 'val_loss'])
-    history.plot(ax=axs[1], y=['pr_auc', 'val_pr_auc'])
-    axs[1].set_ylim(0, 1.0)
-    axs[1].axhline(0.80, ls='--', color='black', alpha=0.5)
+# for split in results.reset_index().split.unique():
+#     X, Y = get_XY(split)
     
-    axs[0].axhline(0.10, ls='--', color='black', alpha=0.5)
-    axs[0].set_ylim(0, 1.0)
-
-plot_history(hist)
-
-
-test = get_XY(split='test')
-
-results = pd.DataFrame({
-    'split': [ 'test', 'train', 'val' ],
-})
-def get_metric(split):
-    X, Y = get_XY(split=split)
-    r = model.evaluate(x=X, y=Y, return_dict=True, verbose=False)
-    return pd.Series(r)
-
-e = results.split.apply(get_metric)
-results = pd.merge(results, e, right_index=True, left_index=True).set_index('split')
-
-from sklearn.metrics import PrecisionRecallDisplay
-
-fig, ax = plt.subplots(1)
-
-for split in results.reset_index().split.unique():
-    X, Y = get_XY(split)
+#     y_true = Y
+#     y_pred = model.predict(X, verbose=False)
     
-    y_true = Y
-    y_pred = model.predict(X, verbose=False)
+#     y_true = np.any(y_true, axis=1)
+#     y_pred = np.max(y_pred, axis=1)
     
-    y_true = np.any(y_true, axis=1)
-    y_pred = np.max(y_pred, axis=1)
-    
-    PrecisionRecallDisplay.from_predictions(ax=ax, y_true=y_true, y_pred=y_pred, name=split)
+#     PrecisionRecallDisplay.from_predictions(ax=ax, y_true=y_true, y_pred=y_pred, name=split)
 
-ax.axhline(0.9, ls='--', color='black', alpha=0.5)
-ax.axvline(0.9, ls='--', color='black', alpha=0.5)
+# ax.axhline(0.9, ls='--', color='black', alpha=0.5)
+# ax.axvline(0.9, ls='--', color='black', alpha=0.5)
 
 def predict_spectrogram(model, spec,window_length):
     
@@ -213,7 +180,7 @@ def predict_spectrogram(model, spec,window_length):
 predictions = predict_spectrogram(model,spec[5],window_length)
 fig, ax = plt.subplots(1, figsize=(30, 5))
 sed.plot_spectrogram(hop_length,samplerate,ax, spec[5],  data[data['file'] == 6],l["6"], predictions)
-model.save(r'C:\Users\issac\Documents\ML\Badminton_sound\model\9file(1000).h5')
+# model.save(r'C:\Users\issac\Documents\ML\Badminton_sound\model\6file(6000).h5')
 
 
 

@@ -1,0 +1,186 @@
+from ultralytics import YOLO
+import numpy as np
+import matplotlib
+matplotlib.use('TkAgg')
+import matplotlib.pyplot as plt
+import cv2
+import SED.SED as sed
+import math
+import os.path
+import pandas as pd
+import numpy as np
+import librosa as lb
+import soundfile as sf
+from SED.SED import *
+from more_itertools import chunked 
+from keras.utils import custom_object_scope
+from keras.models import load_model
+import tensorflow.keras
+import tensorflow.math
+
+#####################################################################################
+##########################################Saliency###################################
+#####################################################################################
+Input_video = r"C:\Users\issac\Documents\ML\Combine_test\badminton1.mp4"
+cap = cv2.VideoCapture(Input_video)
+fps = cap.get(cv2.CAP_PROP_FPS)
+cap.set(cv2.CAP_PROP_FPS,30)
+threshold = 3
+print("FPS:", fps)
+saliency = None
+count = 0
+name = r"C:\Users\issac\Documents\ML\Combine_test\output1"
+# create a motion saliency object
+fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+out = cv2.VideoWriter(name+'.mp4',fourcc,30.0,(1280, 720),0)
+ret, frame = cap.read()
+out.write(frame)
+while True:
+    # read a frame from the input video
+    
+    print("loading",end='\r')
+    ret, frame = cap.read()
+    if not ret:
+        break
+    if saliency is None:
+        print(frame.shape[1],',',frame.shape[0])
+        saliency = cv2.saliency.MotionSaliencyBinWangApr2014_create()
+        saliency.setImagesize(frame.shape[1], frame.shape[0])
+        print(frame.shape[1],',',frame.shape[0])
+        saliency.init()
+        saliency_update = False
+
+    print("Calculating Saliency",end='\r')
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    (success, saliencyMap) = saliency.computeSaliency(gray)
+    saliencyMap = (saliencyMap * 255).astype("uint8")
+    meannn = np.mean(saliencyMap)
+    # if meannn> threshold and meannn < 200:
+    #     out.write(saliencyMap)
+    # if not saliency_update:
+    #     saliency_update = True
+    out.write(saliencyMap)
+    
+    
+    print("Calculating Saliency...",end='\r')
+    # out.write(saliencyMap)
+    
+    
+
+out.release()
+cap.release()
+# #####################################################################################
+# ##########################################YOLO########################################
+# #####################################################################################
+
+model = YOLO("Yolov8/OnlyBadminton.pt")
+count =0
+frame_num=0
+df = pd.DataFrame(columns=['Frame', 'Blank'])
+results = model.predict(source=r"C:\Users\issac\Documents\ML\Combine_test\output1.mp4", save =False, save_crop = False) # Display preds. Accepts all YOLO predict arguments
+fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+out = cv2.VideoWriter(r'C:\Users\issac\Documents\ML\Combine_test\crop_mask'+'.mp4',fourcc,30.0,(1280, 720))
+badmintonout = cv2.VideoWriter(r'C:\Users\issac\Documents\ML\Combine_test\badmintoncrop_mask'+'.mp4',fourcc,30.0,(1280, 720))
+
+for result in results:
+    isBlank = "Blank"
+    isBadminton = "Badminton"
+    ret, frame = cap.read()
+    mask = np.ones(result.orig_img.shape,dtype= result.orig_img.dtype)
+    badmintonmask = np.ones(result.orig_img.shape,dtype= result.orig_img.dtype)
+
+    mask[:,:] = [255,255,255] 
+    badmintonmask[:,:] = [255,255,255]
+
+    for bbox in result.boxes.xyxy:
+        x1, y1, x2, y2 = bbox[0].item(), bbox[1].item(), bbox[2].item(), bbox[3].item()
+        crop_image=result.orig_img[int(y1):int(y2),int(x1):int(x2)]
+        mask[int(y1):int(y2),int(x1):int(x2)] = crop_image
+        meancrop = np.mean(crop_image)
+        
+        # if meancrop < 40:
+            # badmintonmask[int(y1):int(y2),int(x1):int(x2)] = crop_image
+    maskmean = np.mean(mask)
+    # print(maskmean)
+    #
+    if maskmean ==255.0:
+        df.loc[frame_num] = [frame_num, isBlank]
+    else:
+        df.loc[frame_num] = [frame_num,isBadminton]
+    frame_num+=1
+    out.write(mask)
+    badmintonout.write(badmintonmask)
+
+print(df)  
+        
+
+
+out.release()
+
+#####################################################################################
+##########################################SED########################################
+#####################################################################################
+
+
+
+file_count = 1  #Change heree when additional files
+sr = 16000
+n_mels=32 
+datalist =[]
+startlist =[]
+endlist = []
+durationlist = []
+# n_fft=1024 
+# hop_length=256
+time_resolution = 0.10
+batch_size=4
+samplerate = 16000
+window_duration = 0.801 
+window_length = int(window_duration / time_resolution)
+
+def next_power_of_2(x):
+    return 2**(math.ceil(math.log(x, 2)))
+
+hop_length = int(time_resolution*samplerate)
+n_fft = next_power_of_2(hop_length)
+
+audiofile,spec = sed.LoadFromVid(Input_video,sr,n_mels,n_fft,hop_length)
+fig, ax = plt.subplots(1, figsize=(20, 5))
+plot_spectrogram(hop_length,samplerate,ax,spec)
+append_windows = pd.DataFrame()  #create empty dataframe
+# append all the windows dataframe from each audio source file into one dataframe called append_windows  
+windows = pd.DataFrame({
+    'spectrogram': sed.crop_windows(spec, frames=window_length, step=2),  
+    'file': audiofile,
+})
+append_windows = pd.concat([append_windows,windows],axis=0)
+splitData = sed.split_data2(append_windows)
+
+# Load model with customize crossentropy
+with custom_object_scope( {'weighted_binary_crossentropy':weighted_binary_crossentropy}):
+
+    model = load_model(r'C:\Users\issac\Documents\ML\Badminton_sound\model\7file(10000).h5')
+model.summary()
+  
+Xm = np.expand_dims(np.mean(np.concatenate([s.T for s in splitData.spectrogram]), axis=0), -1)
+predictions = predict_spectrogram(model,spec,window_length,Xm)
+fig, ax = plt.subplots(1, figsize=(30, 5))
+sed.plot_spectrogram(hop_length,samplerate,ax, spec, predictions = predictions)
+annotate = events_from_predictions(predictions)     #改成frame了可是好像對不上
+for index, row in annotate.iterrows():
+    datalist.append(list(row))
+startlist = [row[0] for row in datalist]
+endlist = [min(row[1],frame_num-1) for row in datalist]
+for i in range(len(startlist)):
+    templist = [x for x in range(startlist[i],endlist[i]+1)]
+    durationlist.append(templist)
+df['Sound_Detect'] = 'No'
+df['Haptic'] = 'No'
+for i in range(len(durationlist)):
+    df.loc[durationlist[i],'Sound_Detect'] = 'Hit'
+for index, row in df.iterrows():
+    if row['Sound_Detect'] == 'Hit' and row['Blank'] == 'Blank':
+        df.loc[index,'Haptic'] = 'Yes'
+plt.show()
+
+##還要算羽毛球的位置， 看是上半部還是下半部，分別把haptic的聲音加到兩個不同的channel
