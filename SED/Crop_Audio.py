@@ -2,10 +2,10 @@ from pydub import AudioSegment
 import os
 
 # set the length of each cropped audio file (in milliseconds)
-chunk_length_ms = 10000
+chunk_length_ms = 500
 
 # load the audio file
-audio = AudioSegment.from_file(r"C:\Users\issac\Documents\ML\Badminton_sound\1hour2\1.wav")
+audio = AudioSegment.from_file(r"C:\Users\issac\Documents\ML\Badminton_sound\audio_wav\1.wav")
 
 # get the total length of the audio in milliseconds
 audio_length_ms = len(audio)

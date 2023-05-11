@@ -23,7 +23,7 @@ import tensorflow.math
 # Eye Gaze Range to Tactile Sensations: A Novel Approach for Enhancing Accessibility and Human-Computer Interaction"
 #####Hapticizing Visual Action Events: A Framework for Converting Events Occurring within Eye Gaze Range to Tactile Sensations
 
-file_count = 9  #Change heree when additional files
+file_count = 3  #Change heree when additional files
 sr = 16000
 n_mels=32 
 # n_fft=1024 
@@ -33,8 +33,10 @@ batch_size=4
 samplerate = 16000
 # csvpath = r"C:\Users\issac\Documents\ML\Badminton_sound\crop.csv"
 # audiopath = r"C:\Users\issac\Documents\ML\Badminton_sound\crop"
-csvpath = r"C:\Users\issac\Documents\ML\Badminton_sound\sound.csv"
-audiopath = r"C:\Users\issac\Documents\ML\Badminton_sound\audio_wav"
+# csvpath = r"C:\Users\issac\Documents\ML\Badminton_sound\sound.csv"
+# audiopath = r"C:\Users\issac\Documents\ML\Badminton_sound\audio_wav"
+csvpath = r"C:\Users\issac\Documents\ML\Badminton_sound\sound2.csv"
+audiopath = r"C:\Users\issac\Documents\ML\Badminton_sound\sound2"
 window_duration = 0.801 
 window_length = int(window_duration / time_resolution)
 
@@ -85,7 +87,7 @@ model = sedm.build_model(input_shape=(window_length, 32, 1))
 model.summary()
   
 
-epochs = 6000
+epochs = 600
 batch_size = 10*64
 
 from tqdm.keras import TqdmCallback
@@ -208,12 +210,12 @@ def predict_spectrogram(model, spec,window_length):
 
     return out
 
+model.save(r'C:\Users\issac\Documents\ML\Badminton_sound\model\onlyfinal(600).h5')
 
 ##目前只是用第一個file做結果的測試而已
-predictions = predict_spectrogram(model,spec[5],window_length)
+predictions = predict_spectrogram(model,spec[0],window_length)
 fig, ax = plt.subplots(1, figsize=(30, 5))
-sed.plot_spectrogram(hop_length,samplerate,ax, spec[5],  data[data['file'] == 6],l["6"], predictions)
-model.save(r'C:\Users\issac\Documents\ML\Badminton_sound\model\9file(1000).h5')
+sed.plot_spectrogram(hop_length,samplerate,ax, spec[0],  data[data['file'] == 1],l["1"], predictions)
 
 
 

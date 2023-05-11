@@ -34,10 +34,22 @@ def LoadAudio(path,Sr,mels,fft,hop_length): #0,1,2,3
         Sdb_List.append(Sdb)
     return audio_files, Sdb_List
 
+class VideoReader:
+    def __init__(self, Path):
+        self.path = Path
+        self.video = mp.VideoFileClip(self.path)
+        self.audio = self.video.audio
+    def video(self):
+        return self.video
+    def audio(self):
+        return self.audio
+
 import moviepy.editor as mp
 def LoadFromVid(path,Sr,mels,fft,hop_length): #0,1,2,3
     # audio_files = lb.util.find_files(path)
-    video = mp.VideoFileClip(path)
+    video = VideoReader(path)
+    # video = mp.VideoFileClip(path)
+    # audio = video.audio
     audio = video.audio
     temp = "Combine_test/temp.wav"
     audio.write_audiofile(temp)
@@ -48,7 +60,77 @@ def LoadFromVid(path,Sr,mels,fft,hop_length): #0,1,2,3
     print("SDB shape = ",Sdb.shape)
     return temp,Sdb
 
+# def make_sound(df):
+#     t = np.linspace(0, duration, int(audio.fps * duration))
+#     return (np.sin(2*np.pi*440*t/44100)).astype(np.float32)
+    # if df['sound_data'].iloc[t]:
+    #     return (np.sin(2*np.pi*440*t/44100)).astype(np.float32)
+    # else:
+    #     return np.array([0, 0], dtype=np.float32)
+    
+from moviepy.editor import *
+# from pydub import AudioSegment
+# def AddAudioChannel(path,sounddf ):
+#     video = VideoFileClip(path)
+#     audio = video.audio
+#     # video_file = video.video
+#     silenceaudio = r'C:\Users\issac\Documents\ML\Combine_test\silence.wav'
+#     audiofile = r'C:\Users\issac\Documents\ML\Combine_test\500ms.wav'
+#     add_audio = AudioFileClip(audiofile)
+#     blank_image = ImageClip(path).set_duration(video.duration)
+#     # silence_frame = AudioSegment.silent(duration=1000/add_audio.fps, frame_rate=add_audio.fps)
+#     silence_audio = AudioFileClip(silenceaudio)
+#     for index, row in sounddf.iterrows():
+#         frame_number = row['Frame']
+#         if row['Change_Point_X'] == 'Changed_X':
+#             # video_file = video_file.set_audio(video_file.audio.set_audio_frame(add_audio.audio.to_audio_clip(), 3, frame_number))
+#             audio_frame = add_audio.get_frame(frame_number / add_audio.fps)
+#             # video.audio[frame_number] = audio_frame[:,:,None]
+#             # video_file = video.audio.set_make_frame(audio_frame, idx=3, t=frame_number / video.fps)
+#         else:
+#             # silence_clip = mp.AudioClip(duration=1/30.0, fps=44100)
+#             # video_file = video_file.set_audio(video_file.audio.set_audio_frame(silence_clip, 3, frame_number))
+#             # silence_clip = mp.AudioClip(duration=1/30.0, fps=44100)
+#             # audio_frame = silence_clip.make_audio_frame(0)
+#             audio_frame = silence_audio.get_frame(frame_number / add_audio.fps)
+#             video.audio[frame_number] = audio_frame[:,:,None]
+#             # video_file = video.audio.set_make_frame(audio_frame, idx=3, t=frame_number / video.fps)
 
+#     video.write_videofile('addchannel.mp4')
+#     return
+
+def Create_Audio_Sounddf(sounddf):
+    silenceaudio = r'C:\Users\issac\Documents\ML\Combine_test\silence.wav'
+    audiofile = r'C:\Users\issac\Documents\ML\Combine_test\500ms.wav'
+    sample_rate = 44100  # Sample rate (Hz)
+    duration = 1/30
+    frames = int(len(sounddf)* duration * sample_rate)  # Number of frames
+    audio_data = np.zeros(frames )  
+    
+    for i, row in sounddf.iterrows():
+        frame_start = i * int(sample_rate * duration)
+        frame_end = (i + 1) * int(sample_rate * duration)
+    
+        if row['Change_Point_X'] == 'Changed_X':
+            audio, _ = sf.read(audiofile)
+            audio = np.reshape(audio,(-1))
+            audio_data[frame_start:frame_end] = audio[:frame_end-frame_start]
+        else:
+            audio, _ = sf.read(silenceaudio)           
+            audio = np.reshape(audio,(-1))
+            audio_data[frame_start:frame_end] = audio[:frame_end-frame_start] 
+    sf.write(r'C:\Users\issac\Documents\ML\Combine_test\sounddf_output.wav', audio_data, sample_rate)
+    return
+
+from pydub import AudioSegment
+import ffmpeg
+def AddAudioChannel(path ):
+    video = ffmpeg.input(path)
+    add_audio = ffmpeg.input(r'C:\Users\issac\Documents\ML\Combine_test\sounddf_output.wav')
+    output = ffmpeg.output(video, add_audio, r'C:\Users\issac\Documents\ML\Combine_test\final_output.mp4', filter_complex="[0:a][1:a]amerge=inputs=2[a]",  map="[v]", map="[a]", map="[2:a]")
+    ffmpeg.run(output)
+    return
+#可能是要先把video的audio分離出來然後再跟著一起merge回去
 
 def labeling(originaldata, length, time_resolution, i):
     """
