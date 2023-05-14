@@ -45,7 +45,7 @@
 
 # import wave
 
-# with wave.open(r'C:\Users\issac\Documents\ML\Combine_test\final_ouput.mp4', 'r') as wav_file:
+# with wave.open(r'C:\Users\issac\Documents\ML\Combine_test\separate\output_audio.aac', 'r') as wav_file:
 #     num_channels = wav_file.getnchannels()
 #     print("Number of audio channels:", num_channels)
 
@@ -68,12 +68,80 @@
 from moviepy.editor import VideoFileClip
 
 
-video_clip = VideoFileClip(r'C:\Users\issac\Documents\ML\Combine_test\final_output.mp4')
+video_clip = VideoFileClip(r'C:\Users\issac\Documents\ML\Combine_test\output\output1.mp4')
 audio = video_clip.audio
 audio_channels = audio.nchannels
 video_clip.close()
-
-
-# Example usage
-
 print("Number of audio channels:", audio_channels)
+
+import subprocess
+
+def get_audio_channels(file_path):
+    ffprobe_cmd = [
+        'ffprobe',
+        '-v', 'error',
+        '-show_entries', 'stream=channels',
+        '-select_streams', 'a:0',
+        '-of', 'default=noprint_wrappers=1:nokey=1',
+        file_path
+    ]
+
+    result = subprocess.run(ffprobe_cmd, capture_output=True, text=True)
+    output = result.stdout.strip()
+    channels = int(output) if output.isdigit() else None
+    return channels
+
+
+
+
+
+# # Usage example
+# audio_file = r'C:\Users\issac\Documents\ML\Combine_test\separate\output_audio1.aac'
+# channels = get_audio_channels(audio_file)
+# if channels is not None:
+#     print(f"The audio file '{audio_file}' has {channels} channel(s).")
+# else:
+#     print(f"Failed to determine the number of channels for '{audio_file}'.")
+
+# import subprocess
+
+# video_file = r"C:\Users\issac\Documents\ML\Combine_test\Input_video\badminton1.mp4"
+# output_file_left = r"C:\Users\issac\Documents\ML\Combine_test\testing\output_left.wav"
+# output_file_right = r"C:\Users\issac\Documents\ML\Combine_test\testing\output_right.wav"
+
+
+# output_video = r"C:\Users\issac\Documents\ML\Combine_test\testing\output_video.mp4"
+
+
+# # Separate video from the input file
+# video_command = [
+#     "ffmpeg",
+#     "-i", video_file,
+#     "-c:v", "copy",
+#     "-an",  # Disable audio
+#     '-y',
+#     output_video
+# ]
+# # Separate audio channels from the input file
+# audio_command1 = [
+#     "ffmpeg",
+#     "-i", video_file,
+#     "-map_channel", "0.0.0"  # Select audio channel 1
+#     # "-c:a", "copy",
+#     '-y',
+#     output_file_left
+# ]
+# audio_command2 = [
+#     "ffmpeg",
+#     "-i", video_file,
+#     "-map_channel", "0.0.1"  # Select audio channel 2
+#     # "-c:a", "copy",
+#     '-y',
+#     output_file_right
+# ]
+# # Execute the video and audio separation commands
+# subprocess.run(video_command)
+# subprocess.run(audio_command1)
+# subprocess.run(audio_command2)
+# Split left channel
+

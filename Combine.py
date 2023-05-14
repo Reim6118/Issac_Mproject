@@ -21,55 +21,57 @@ import tensorflow.math
 #####################################################################################
 ##########################################Saliency###################################
 #####################################################################################
-Input_video = r"C:\Users\issac\Documents\ML\Combine_test\badminton2.mp4"
+Input_video = r"C:\Users\issac\Documents\ML\Combine_test\Input_video\badminton2.mp4"
 cap = cv2.VideoCapture(Input_video)
 fps = cap.get(cv2.CAP_PROP_FPS)
 cap.set(cv2.CAP_PROP_FPS,30)
 
-# threshold = 3
-# print("FPS:", fps)
-# saliency = None
-# count = 0
-# name = r"C:\Users\issac\Documents\ML\Combine_test\output1"
-# # create a motion saliency object
-# fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-# out = cv2.VideoWriter(name+'.mp4',fourcc,30.0,(1280, 720),0)
-# ret, frame = cap.read()
-# out.write(frame)
-# while True:
-#     # read a frame from the input video
-    
-#     print("loading",end='\r')
-#     ret, frame = cap.read()
-#     if not ret:
-#         break
-#     if saliency is None:
-#         print(frame.shape[1],',',frame.shape[0])
-#         saliency = cv2.saliency.MotionSaliencyBinWangApr2014_create()
-#         saliency.setImagesize(frame.shape[1], frame.shape[0])
-#         print(frame.shape[1],',',frame.shape[0])
-#         saliency.init()
-#         saliency_update = False
+threshold = 3
+print("FPS:", fps)
+saliency = None
+count = 0
+name = r"C:\Users\issac\Documents\ML\Combine_test\output1"
+# create a motion saliency object
+fourcc = cv2.VideoWriter_fourcc(*'mp4v')
 
-#     print("Calculating Saliency",end='\r')
-#     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-#     (success, saliencyMap) = saliency.computeSaliency(gray)
-#     saliencyMap = (saliencyMap * 255).astype("uint8")
-#     meannn = np.mean(saliencyMap)
-#     # if meannn> threshold and meannn < 200:
-#     #     out.write(saliencyMap)
-#     # if not saliency_update:
-#     #     saliency_update = True
-#     out.write(saliencyMap)
+ret, frame = cap.read()
+height, width, _ = frame.shape
+out = cv2.VideoWriter(name+'.mp4',fourcc,fps,(width, height),0)
+out.write(frame)
+while True:
+    # read a frame from the input video
+    
+    print("loading",end='\r')
+    ret, frame = cap.read()
+    if not ret:
+        break
+    if saliency is None:
+        print(frame.shape[1],',',frame.shape[0])
+        saliency = cv2.saliency.MotionSaliencyBinWangApr2014_create()
+        saliency.setImagesize(frame.shape[1], frame.shape[0])
+        print(frame.shape[1],',',frame.shape[0])
+        saliency.init()
+        saliency_update = False
+
+    print("Calculating Saliency",end='\r')
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    (success, saliencyMap) = saliency.computeSaliency(gray)
+    saliencyMap = (saliencyMap * 255).astype("uint8")
+    meannn = np.mean(saliencyMap)
+    # if meannn> threshold and meannn < 200:
+    #     out.write(saliencyMap)
+    # if not saliency_update:
+    #     saliency_update = True
+    out.write(saliencyMap)
     
     
-#     print("Calculating Saliency...",end='\r')
-#     # out.write(saliencyMap)
+    print("Calculating Saliency...",end='\r')
+    # out.write(saliencyMap)
     
     
 
-# out.release()
-# cap.release()
+out.release()
+cap.release()
 # #####################################################################################
 # ##########################################YOLO########################################
 # #####################################################################################
@@ -80,18 +82,18 @@ frame_num=0
 df = pd.DataFrame(columns=['Frame', 'Blank','Center_X','Center_Y','Sec'])
 results = model.predict(source=r"C:\Users\issac\Documents\ML\Combine_test\output1.mp4", save =False, save_crop = False) # Display preds. Accepts all YOLO predict arguments
 fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-out = cv2.VideoWriter(r'C:\Users\issac\Documents\ML\Combine_test\crop_mask'+'.mp4',fourcc,30.0,(1280, 720))
-badmintonout = cv2.VideoWriter(r'C:\Users\issac\Documents\ML\Combine_test\badmintoncrop_mask'+'.mp4',fourcc,30.0,(1280, 720))
+out = cv2.VideoWriter(r'C:\Users\issac\Documents\ML\Combine_test\crop_mask'+'.mp4',fourcc,fps,(width, height))
+# badmintonout = cv2.VideoWriter(r'C:\Users\issac\Documents\ML\Combine_test\badmintoncrop_mask'+'.mp4',fourcc,fps,(width, height))
 
 for result in results:
     isBlank = "Blank"
     isBadminton = "Badminton"
     ret, frame = cap.read()
     mask = np.ones(result.orig_img.shape,dtype= result.orig_img.dtype)
-    badmintonmask = np.ones(result.orig_img.shape,dtype= result.orig_img.dtype)
+    # badmintonmask = np.ones(result.orig_img.shape,dtype= result.orig_img.dtype)
 
     mask[:,:] = [255,255,255] 
-    badmintonmask[:,:] = [255,255,255]
+    # badmintonmask[:,:] = [255,255,255]
 
     for bbox in result.boxes.xyxy:
         x1, y1, x2, y2 = bbox[0].item(), bbox[1].item(), bbox[2].item(), bbox[3].item()
@@ -115,40 +117,22 @@ for result in results:
 
     
     out.write(mask)
-    badmintonout.write(badmintonmask)
+    # badmintonout.write(badmintonmask)
 
 
 window_size_ascend = 3
-mask = (df['Center_X'] == df['Center_X'].shift()) | (df['Center_X'] == 0)
-df.loc[mask, 'Center_X'] = None
+###########################Calculate X#################################
+mask_X = (df['Center_X'] == df['Center_X'].shift()) | (df['Center_X'] == 0)
+df.loc[mask_X, 'Center_X'] = None
 df['Center_X'].fillna(method='ffill', inplace=True)
 diff_X = df['Center_X'].diff(periods=window_size_ascend)
-#calculte ascending descending
-# nonzero_idx_Y = df['Center_Y'].ne(0)
-# nonzero_idx_X = df['Center_X'].ne(0)
-
-# diff_Y = pd.Series(0, index=df.index)
-# diff_Y.loc[nonzero_idx_Y] = df.loc[nonzero_idx_Y, 'Center_Y'].diff(periods=window_size_ascend)
-# diff_X = pd.Series(0, index=df.index)
-# diff_X.loc[nonzero_idx_X] = df.loc[nonzero_idx_X, 'Center_X'].diff(periods=window_size_ascend)
 threshold = 3
-# drastic_changes_Y = (diff_Y.abs() > threshold)
-# drastic_changes_X = (diff_X.abs() > threshold)
-# df['Big change Y'] = ''
 df['Big change X'] = ''
-# df['Direction_Y'] = ''
-# df['ShiftedDirection_Y'] = ''
-# df['Change_Point_Y'] = ''
 df['Direction_X'] = None
 df['ShiftedDirection_x'] = ''
-
 df['Change_Point_X'] = ''
-# df.loc[diff_Y >= 0, 'Direction_Y'] = 'Up'
-# df.loc[diff_Y <= 0, 'Direction_Y'] = 'Down'
 df.loc[diff_X > 0, 'Direction_X'] = 'Right'
 df.loc[diff_X < 0, 'Direction_X'] = 'Left'
-# df.loc[diff_X == 0, 'Direction_X'] = 'Left'
-
 # fill the direction for the zero rows
 last_nonzero_direction_X = None
 for i, row in df.iterrows():
@@ -156,15 +140,38 @@ for i, row in df.iterrows():
         df.at[i, 'Direction_X'] = last_nonzero_direction_X
     else:
         last_nonzero_direction_X = row['Direction_X']
-
-# df['ShiftedDirection_Y'] = df['Direction_Y'].shift(1)
 df['ShiftedDirection_X'] = df['Direction_X'].shift(1)
-# change_point_Y = df[((df['Direction_Y'] == 'Down') & (df['ShiftedDirection_Y'] == 'Up')) | ((df['Direction_Y'] == 'Up')& (df['ShiftedDirection_Y'] == 'Down'))].index.tolist()
-# df.loc[change_point_Y,'Change_Point_Y'] = 'Changed_Y'
-change_point_X = df[((df['Direction_X'] == 'Left') & (df['ShiftedDirection_X'] == 'Right')) | ((df['Direction_X'] == 'Right')& (df['ShiftedDirection_X'] == 'Left'))].index.tolist()
+change_point_X = df[((df['Direction_X'] == 'Left') & (df['ShiftedDirection_X'] == 'Right')) | ((df['Direction_X'] == 'Right')& (df['ShiftedDirection_X'] == 'Left')) | (((df['Center_X'] - df['Center_X'].shift(1)).abs()) > 50)].index.tolist()
 df.loc[change_point_X,'Change_Point_X'] = 'Changed_X'
+
+
+###########################Calculate Y#################################
+mask_Y = (df['Center_Y'] == df['Center_Y'].shift()) | (df['Center_Y'] == 0)
+df.loc[mask_Y, 'Center_Y'] = None
+df['Center_Y'].fillna(method='ffill', inplace=True)
+diff_X = df['Center_Y'].diff(periods=window_size_ascend)
+threshold = 3
+df['Big change Y'] = ''
+df['Direction_Y'] = None
+df['ShiftedDirection_Y'] = ''
+df['Change_Point_Y'] = ''
+df.loc[diff_X > 0, 'Direction_Y'] = 'Up'
+df.loc[diff_X < 0, 'Direction_Y'] = 'Down'
+# fill the direction for the zero rows
+last_nonzero_direction_Y = None
+for i, row in df.iterrows():
+    if pd.isna(row['Direction_Y']):
+        df.at[i, 'Direction_Y'] = last_nonzero_direction_Y
+    else:
+        last_nonzero_direction_X = row['Direction_Y']
+df['ShiftedDirection_Y'] = df['Direction_Y'].shift(1)
+change_point_Y = df[((df['Direction_Y'] == 'Down') & (df['ShiftedDirection_Y'] == 'Up')) | ((df['Direction_Y'] == 'Up')& (df['ShiftedDirection_Y'] == 'Down')) | (((df['Center_Y'] - df['Center_Y'].shift(1)).abs()) > 50)].index.tolist()
+df.loc[change_point_Y,'Change_Point_Y'] = 'Changed_Y'
+
 # df.loc[drastic_changes_Y,'Big change Y'] = 'True'
 # df.loc[drastic_changes_X,'Big change X'] = 'True'
+
+#降低或升高超過一定幅度，可能100也要changed x，
 
 print(df)  
         
@@ -231,8 +238,8 @@ for i in range(len(startlist)):
     durationlist.append(templist)
 # df['Sound_Detect'] = 'No'
 # df['Haptic'] = 'No'
-for i in range(len(durationlist)):
-    df.loc[durationlist[i],'Sound_Detect'] = 'Hit'
+# for i in range(len(durationlist)):
+    # df.loc[durationlist[i],'Sound_Detect'] = 'Hit'
 # for index, row in df.iterrows():
 #     if row['Sound_Detect'] == 'Hit' and row['Blank'] == 'Blank':
 #         df.loc[index,'Haptic'] = 'Yes'

@@ -6,7 +6,9 @@ import librosa as lb
 import soundfile as sf
 from more_itertools import chunked 
 from matplotlib import pyplot as plt
-
+from pydub import AudioSegment
+import ffmpeg
+import subprocess
 
 #samplerate
 
@@ -121,16 +123,82 @@ def Create_Audio_Sounddf(sounddf):
             audio_data[frame_start:frame_end] = audio[:frame_end-frame_start] 
     sf.write(r'C:\Users\issac\Documents\ML\Combine_test\sounddf_output.wav', audio_data, sample_rate)
     return
+def separate_video_and_audio(path):
+    video_file = path
+    output_video = r"C:\Users\issac\Documents\ML\Combine_test\separate\output_video.mp4"
+    output_audio1 = r"C:\Users\issac\Documents\ML\Combine_test\separate\output_audio1.aac"
+    output_audio2 = r"C:\Users\issac\Documents\ML\Combine_test\separate\output_audio2.aac"
 
-from pydub import AudioSegment
-import ffmpeg
+    # Separate video from the input file
+    video_command = [
+        "ffmpeg",
+        "-i", video_file,
+        "-c:v", "copy",
+        "-an",  # Disable audio
+        '-y',
+        output_video
+   ]
+    # Separate audio channels from the input file
+    audio_command1 = [
+        "ffmpeg",
+        "-i", video_file,
+        "-map", "0:a:0",  # Select audio channel 1
+        "-c:a", "copy",
+        '-y',
+        output_audio1
+    ]
+    audio_command2 = [
+        "ffmpeg",
+        "-i", video_file,
+        "-map", "0:a:1",  # Select audio channel 2
+        "-c:a", "copy",
+        '-y',
+        output_audio2
+    ]
+    # Execute the video and audio separation commands
+    subprocess.run(video_command)
+    subprocess.run(audio_command1)
+    subprocess.run(audio_command2)
+
 def AddAudioChannel(path ):
-    video = ffmpeg.input(path)
-    add_audio = ffmpeg.input(r'C:\Users\issac\Documents\ML\Combine_test\sounddf_output.wav')
-    output = ffmpeg.output(video, add_audio, r'C:\Users\issac\Documents\ML\Combine_test\final_output.mp4', filter_complex="[0:a][1:a]amerge=inputs=2[a]",  map="[v]", map="[a]", map="[2:a]")
-    ffmpeg.run(output)
+    original_video = path
+    #Seperate audio and video first then merge
+    separate_video_and_audio(original_video)
+    video = r"C:\Users\issac\Documents\ML\Combine_test\separate\output_video.mp4"
+    audio1 = r"C:\Users\issac\Documents\ML\Combine_test\separate\output_audio1.aac"
+    # audio2 = r'C:\Users\issac\Documents\ML\Combine_test\sounddf_output.wav'
+    haptic_audio = r'C:\Users\issac\Documents\ML\Combine_test\sounddf_output.wav'
+    output = r"C:\Users\issac\Documents\ML\Combine_test\output\output1.mp4"
+    #舊的，可用，stereo一個channel，haptic一個
+    # ffmpeg_cmd = [
+    #     'ffmpeg',
+    #     '-i', video,
+    #     '-i', audio1,
+    #     '-i', haptic_audio,
+    #     '-filter_complex', '[1:a]pan=stereo|c0=c0|c1=c1[a1];[a1][2:a]amerge=inputs=2[a]',
+    #     '-map', '0:v',
+    #     '-map', '[a]',
+    #     '-c:v', 'copy',
+    #     '-c:a', 'aac',
+    #     '-y',
+    #     output
+    # ]
+    ffmpeg_cmd = [
+    'ffmpeg',
+    '-i', video,
+    '-i', audio1,
+    '-i', haptic_audio,
+    '-filter_complex', '[1:a]channelsplit=channel_layout=stereo[a1][a2];[a1][a2]amerge=inputs=2[a];[2:a]channelsplit=channel_layout=mono[a3];[a][a3]amerge=inputs=2[a]',
+    '-map', '0:v',
+    '-map', '[a]',
+    '-c:v', 'copy',
+    '-c:a', 'aac',
+    '-y',
+    output
+]
+    subprocess.run(ffmpeg_cmd)
     return
-#可能是要先把video的audio分離出來然後再跟著一起merge回去
+
 
 def labeling(originaldata, length, time_resolution, i):
     """
