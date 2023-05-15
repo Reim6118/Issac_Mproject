@@ -103,7 +103,7 @@ from moviepy.editor import *
 
 def Create_Audio_Sounddf(sounddf):
     silenceaudio = r'C:\Users\issac\Documents\ML\Combine_test\silence.wav'
-    audiofile = r'C:\Users\issac\Documents\ML\Combine_test\500ms.wav'
+    audiofile = r'C:\Users\issac\Documents\ML\Combine_test\badminton.mp3'
     sample_rate = 44100  # Sample rate (Hz)
     duration = 1/30
     frames = int(len(sounddf)* duration * sample_rate)  # Number of frames
@@ -111,18 +111,47 @@ def Create_Audio_Sounddf(sounddf):
     
     for i, row in sounddf.iterrows():
         frame_start = i * int(sample_rate * duration)
-        frame_end = (i + 1) * int(sample_rate * duration)
-    
+        frame_end = (i + 3) * int(sample_rate * duration)
+
+        # if row['Change_Point_X'] == 'Changed_X' or row['Change_Point_Y'] == 'Changed_Y':
         if row['Change_Point_X'] == 'Changed_X':
+            #在這邊加不同的羽毛球音頻，然後讀db來判斷，寫幾個if，>50可以用殺球40-50中間<40小
             audio, _ = sf.read(audiofile)
             audio = np.reshape(audio,(-1))
             audio_data[frame_start:frame_end] = audio[:frame_end-frame_start]
-        else:
+        elif audio_data[frame_start] == None:
             audio, _ = sf.read(silenceaudio)           
             audio = np.reshape(audio,(-1))
             audio_data[frame_start:frame_end] = audio[:frame_end-frame_start] 
+        # else:    
+        #     audio, _ = sf.read(silenceaudio)           
+        #     audio = np.reshape(audio,(-1))
+        #     audio_data[frame_start:frame_end] = audio[:frame_end-frame_start]
     sf.write(r'C:\Users\issac\Documents\ML\Combine_test\sounddf_output.wav', audio_data, sample_rate)
     return
+
+def calculate_dB_frame(frame, ref_level=1e-10):
+    spectrogram = lb.stft(frame)
+    rms = lb.feature.rms(S=spectrogram)
+    dB = lb.amplitude_to_db(rms,ref=ref_level)
+    avg_dB = np.mean(dB)
+    return avg_dB
+def caluculate_db(path,df):
+    video_file = path
+    sample_rate = 44100  # Sample rate (Hz)
+    duration = 1/30
+    db_values = []
+    audio, sr = lb.load(video_file, sr=44100)
+    for i, row in df.iterrows():
+        frame_start = i * int(sample_rate * duration)
+        frame_end = (i + 1) * int(sample_rate * duration)
+        # audio = np.reshape(audio,(-1))
+        db_value = calculate_dB_frame(audio[frame_start:frame_end])
+        db_values.append(db_value)
+    # dB_values = [calculate_dB_frame(audio[i:i+sr]) for i in range(0, len(audio), sr)]
+    df['dB'] = db_values
+    return df
+
 def separate_video_and_audio(path):
     video_file = path
     output_video = r"C:\Users\issac\Documents\ML\Combine_test\separate\output_video.mp4"
@@ -159,46 +188,69 @@ def separate_video_and_audio(path):
     subprocess.run(video_command)
     subprocess.run(audio_command1)
     subprocess.run(audio_command2)
+import subprocess
 
-def AddAudioChannel(path ):
+
+
+
+def EncodeAudioChannel(path ):
     original_video = path
-    #Seperate audio and video first then merge
-    separate_video_and_audio(original_video)
+      
     video = r"C:\Users\issac\Documents\ML\Combine_test\separate\output_video.mp4"
     audio1 = r"C:\Users\issac\Documents\ML\Combine_test\separate\output_audio1.aac"
+    audio_originalL = r"C:\Users\issac\Documents\ML\Combine_test\separate\left.wav"
+    audio_originalR = r"C:\Users\issac\Documents\ML\Combine_test\separate\right.wav"
     # audio2 = r'C:\Users\issac\Documents\ML\Combine_test\sounddf_output.wav'
-    haptic_audio = r'C:\Users\issac\Documents\ML\Combine_test\sounddf_output.wav'
-    output = r"C:\Users\issac\Documents\ML\Combine_test\output\output1.mp4"
-    #舊的，可用，stereo一個channel，haptic一個
-    # ffmpeg_cmd = [
-    #     'ffmpeg',
-    #     '-i', video,
-    #     '-i', audio1,
-    #     '-i', haptic_audio,
-    #     '-filter_complex', '[1:a]pan=stereo|c0=c0|c1=c1[a1];[a1][2:a]amerge=inputs=2[a]',
-    #     '-map', '0:v',
-    #     '-map', '[a]',
-    #     '-c:v', 'copy',
-    #     '-c:a', 'aac',
-    #     '-y',
-    #     output
-    # ]
+    haptic_audio = r'C:\Users\issac\Documents\ML\Combine_test\sounddf_output.wav'  
+    audio_output = r"C:\Users\issac\Documents\ML\Combine_test\output\audio_output.wav"
+    
+    #Seperate audio and video first then merge
+    separate_video_and_audio(original_video)
+    #Split the stereo into two mono
+    Split_Stereo(audio1)
+   
+    ##############mine############
     ffmpeg_cmd = [
     'ffmpeg',
-    '-i', video,
-    '-i', audio1,
+    '-i', audio_originalL,
+    '-i', audio_originalR,
     '-i', haptic_audio,
-    '-filter_complex', '[1:a]channelsplit=channel_layout=stereo[a1][a2];[a1][a2]amerge=inputs=2[a];[2:a]channelsplit=channel_layout=mono[a3];[a][a3]amerge=inputs=2[a]',
-    '-map', '0:v',
+    '-i', haptic_audio,
+    '-filter_complex', '[0:a][1:a][2:a][3:a]join=inputs=4:channel_layout=quad[a]',
     '-map', '[a]',
-    '-c:v', 'copy',
-    '-c:a', 'aac',
     '-y',
-    output
+    audio_output
 ]
     subprocess.run(ffmpeg_cmd)
+    
     return
 
+def Split_Stereo(path):
+    ffmpeg_cmd = [
+        'ffmpeg',
+        '-i', path,
+        '-filter_complex', '[0:a]channelsplit=channel_layout=stereo[left][right]',
+        '-map', '[left]','-y', r"C:\Users\issac\Documents\ML\Combine_test\separate\left.wav",
+        '-map', '[right]','-y', r"C:\Users\issac\Documents\ML\Combine_test\separate\right.wav"
+    ]
+    subprocess.run(ffmpeg_cmd)
+    return 
+
+def Combine_Vid_Audio():
+    output = r"C:\Users\issac\Documents\ML\Combine_test\output\output2.mp4"
+    split_vid = r"C:\Users\issac\Documents\ML\Combine_test\separate\output_video.mp4"
+    audio = r"C:\Users\issac\Documents\ML\Combine_test\output\audio_output.wav"
+    ffmpeg_cmd = ['ffmpeg ',
+                  '-i', split_vid,
+                  '-i', audio,
+                  '-c:v','copy',
+                #   '-c:a', 'aac', 
+                  '-map',' 0:v:0',
+                  '-map', '1:a:0', 
+                  '-shortest', 
+                  output]
+    subprocess.run(ffmpeg_cmd)
+    return
 
 def labeling(originaldata, length, time_resolution, i):
     """

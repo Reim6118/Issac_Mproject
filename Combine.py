@@ -36,41 +36,41 @@ fourcc = cv2.VideoWriter_fourcc(*'mp4v')
 
 ret, frame = cap.read()
 height, width, _ = frame.shape
-out = cv2.VideoWriter(name+'.mp4',fourcc,fps,(width, height),0)
-out.write(frame)
-while True:
-    # read a frame from the input video
+# out = cv2.VideoWriter(name+'.mp4',fourcc,fps,(width, height),0)
+# out.write(frame)
+# while True:
+#     # read a frame from the input video
     
-    print("loading",end='\r')
-    ret, frame = cap.read()
-    if not ret:
-        break
-    if saliency is None:
-        print(frame.shape[1],',',frame.shape[0])
-        saliency = cv2.saliency.MotionSaliencyBinWangApr2014_create()
-        saliency.setImagesize(frame.shape[1], frame.shape[0])
-        print(frame.shape[1],',',frame.shape[0])
-        saliency.init()
-        saliency_update = False
+#     print("loading",end='\r')
+#     ret, frame = cap.read()
+#     if not ret:
+#         break
+#     if saliency is None:
+#         print(frame.shape[1],',',frame.shape[0])
+#         saliency = cv2.saliency.MotionSaliencyBinWangApr2014_create()
+#         saliency.setImagesize(frame.shape[1], frame.shape[0])
+#         print(frame.shape[1],',',frame.shape[0])
+#         saliency.init()
+#         saliency_update = False
 
-    print("Calculating Saliency",end='\r')
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    (success, saliencyMap) = saliency.computeSaliency(gray)
-    saliencyMap = (saliencyMap * 255).astype("uint8")
-    meannn = np.mean(saliencyMap)
-    # if meannn> threshold and meannn < 200:
-    #     out.write(saliencyMap)
-    # if not saliency_update:
-    #     saliency_update = True
-    out.write(saliencyMap)
+#     print("Calculating Saliency",end='\r')
+#     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+#     (success, saliencyMap) = saliency.computeSaliency(gray)
+#     saliencyMap = (saliencyMap * 255).astype("uint8")
+#     meannn = np.mean(saliencyMap)
+#     # if meannn> threshold and meannn < 200:
+#     #     out.write(saliencyMap)
+#     # if not saliency_update:
+#     #     saliency_update = True
+#     out.write(saliencyMap)
     
     
-    print("Calculating Saliency...",end='\r')
-    # out.write(saliencyMap)
+#     print("Calculating Saliency...",end='\r')
+#     # out.write(saliencyMap)
     
     
 
-out.release()
+# out.release()
 cap.release()
 # #####################################################################################
 # ##########################################YOLO########################################
@@ -127,7 +127,7 @@ df.loc[mask_X, 'Center_X'] = None
 df['Center_X'].fillna(method='ffill', inplace=True)
 diff_X = df['Center_X'].diff(periods=window_size_ascend)
 threshold = 3
-df['Big change X'] = ''
+# df['Big change X'] = ''
 df['Direction_X'] = None
 df['ShiftedDirection_x'] = ''
 df['Change_Point_X'] = ''
@@ -142,6 +142,7 @@ for i, row in df.iterrows():
         last_nonzero_direction_X = row['Direction_X']
 df['ShiftedDirection_X'] = df['Direction_X'].shift(1)
 change_point_X = df[((df['Direction_X'] == 'Left') & (df['ShiftedDirection_X'] == 'Right')) | ((df['Direction_X'] == 'Right')& (df['ShiftedDirection_X'] == 'Left')) | (((df['Center_X'] - df['Center_X'].shift(1)).abs()) > 50)].index.tolist()
+# change_point_X = df[(((df['Direction_X'] == 'Left') & (df['ShiftedDirection_X'] == 'Right')) | ((df['Direction_X'] == 'Right')& (df['ShiftedDirection_X'] == 'Left')) | (((df['Center_X'] - df['Center_X'].shift(1)).abs()) > 50)) & (df['Center_Y'] <= 300)].index.tolist()
 df.loc[change_point_X,'Change_Point_X'] = 'Changed_X'
 
 
@@ -151,7 +152,7 @@ df.loc[mask_Y, 'Center_Y'] = None
 df['Center_Y'].fillna(method='ffill', inplace=True)
 diff_X = df['Center_Y'].diff(periods=window_size_ascend)
 threshold = 3
-df['Big change Y'] = ''
+# df['Big change Y'] = ''
 df['Direction_Y'] = None
 df['ShiftedDirection_Y'] = ''
 df['Change_Point_Y'] = ''
@@ -243,9 +244,12 @@ for i in range(len(startlist)):
 # for index, row in df.iterrows():
 #     if row['Sound_Detect'] == 'Hit' and row['Blank'] == 'Blank':
 #         df.loc[index,'Haptic'] = 'Yes'
-sounddf = df[['Frame','Change_Point_X']].copy()
+sounddf = df[['Frame','Change_Point_X','Change_Point_Y']].copy()
+
+sounddf = caluculate_db(Input_video,sounddf)
 Create_Audio_Sounddf(sounddf)
-AddAudioChannel(Input_video)
+EncodeAudioChannel(Input_video)
+Combine_Vid_Audio()
 plt.show()
 
 

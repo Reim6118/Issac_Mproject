@@ -65,31 +65,32 @@
 # sampling_rate = get_sampling_rate(audio_file)
 # print(f"The audio file has a sampling rate of {sampling_rate} Hz.")
 
-from moviepy.editor import VideoFileClip
+import moviepy.editor as mv
 
 
-video_clip = VideoFileClip(r'C:\Users\issac\Documents\ML\Combine_test\output\output1.mp4')
-audio = video_clip.audio
+# video_clip = mv.VideoFileClip(r'C:\Users\issac\Documents\ML\Combine_test\output\output1.mp4')
+# audio = video_clip.audio
+audio = mv.AudioFileClip(r"C:\Users\issac\Documents\ML\Combine_test\output\audio_output.wav")
 audio_channels = audio.nchannels
-video_clip.close()
+audio.close()
 print("Number of audio channels:", audio_channels)
 
-import subprocess
+# import subprocess
 
-def get_audio_channels(file_path):
-    ffprobe_cmd = [
-        'ffprobe',
-        '-v', 'error',
-        '-show_entries', 'stream=channels',
-        '-select_streams', 'a:0',
-        '-of', 'default=noprint_wrappers=1:nokey=1',
-        file_path
-    ]
+# def get_audio_channels(file_path):
+#     ffprobe_cmd = [
+#         'ffprobe',
+#         '-v', 'error',
+#         '-show_entries', 'stream=channels',
+#         '-select_streams', 'a:0',
+#         '-of', 'default=noprint_wrappers=1:nokey=1',
+#         file_path
+#     ]
 
-    result = subprocess.run(ffprobe_cmd, capture_output=True, text=True)
-    output = result.stdout.strip()
-    channels = int(output) if output.isdigit() else None
-    return channels
+#     result = subprocess.run(ffprobe_cmd, capture_output=True, text=True)
+#     output = result.stdout.strip()
+#     channels = int(output) if output.isdigit() else None
+#     return channels
 
 
 
