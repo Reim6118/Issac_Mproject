@@ -12,17 +12,22 @@
 ##### The video will be first normalized and turned into gray scale. It will then pass through a subtraction algorithm to calculate the motion saliency, which indicates the moving part / pixels that is different from the previous frame. 
 <img width="1325" alt="Screenshot 2024-02-26 at 15 49 37" src="https://github.com/Reim6118/Issac_Mproject/assets/32570797/5e5235de-e85d-4f6d-a365-91701421af17">
 
+##### The processed frames will then be passed into an object detection model trained using transfer learning from Yolov8 (yolov8n.pt).
+
 <img width="612" alt="image" src="https://github.com/Reim6118/Issac_Mproject/assets/32570797/7cd8dadf-b972-4086-a569-3d65e112995f">
 
-
+##### The output frame from the model is shown on the picture on the right, which is a cropped mask with only the badminton that is identified. The position of the badminton will be recorded and pass to another algorithm to determine the possibility of racket contacting with the shuttle ball. 
 <img width="1309" alt="Screenshot 2024-02-26 at 15 54 08" src="https://github.com/Reim6118/Issac_Mproject/assets/32570797/38fbd42e-a90f-4316-a7da-9ee305fab51a">
 
+## Processing Audio Content
 
-
+##### For audio data, it is passed into a Sed-CRNN model, which is a sound event detection model trained based on convolution recurrent network.
 <img width="1309" alt="Screenshot" src="https://github.com/Reim6118/Issac_Mproject/assets/32570797/256116ac-4b8c-4e7d-bd9d-e68c38769855">
 
 
 <img width="385" alt="Screenshot2" src="https://github.com/Reim6118/Issac_Mproject/assets/32570797/e95251a8-a004-4779-b9c9-93060973b566">
+
+![image](https://github.com/Reim6118/Issac_Mproject/assets/32570797/829c3795-cb9f-4c09-a5ee-ff0db78eb802)
 
 
 <img width="523" alt="image" src="https://github.com/Reim6118/Issac_Mproject/assets/32570797/6b524ff8-4f3e-4020-950e-d993604e6538">
