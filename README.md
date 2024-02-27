@@ -25,10 +25,39 @@
 <img width="1309" alt="Screenshot" src="https://github.com/Reim6118/Issac_Mproject/assets/32570797/256116ac-4b8c-4e7d-bd9d-e68c38769855">
 
 
+
+
+
+<!-- #### Interface of Ableton Live during manual annotation task 
+![image](https://github.com/Reim6118/Issac_Mproject/assets/32570797/829c3795-cb9f-4c09-a5ee-ff0db78eb802) -->
+
+## Final Output
+
+##### A comparison between manual authored and automatic generated haptic feedback for a same piece of badminton match video is shown below. In this particular video, the automatic audio generation achieved an accuracy of 16 correct annotations out of 22 hits, correct annotations indicates the automatic generated haptic fells between +-25ms compare to manual authored haptic feedbacks. Note that the manual authoring haptic can also vary between experiment participants / haptic authors, however it is observed that participants cannot precisely tell the difference between haptic feedbacks that is provided +-50ms earlier/later, even around +-80ms.
+<img width="523" alt="image" src="https://github.com/Reim6118/Issac_Mproject/assets/32570797/6b524ff8-4f3e-4020-950e-d993604e6538">
+
+#### 3D printed artifacts with solenoid actuators embded in is provided to participants to directly feel the haptic feedback from videos.
 <img width="385" alt="Screenshot2" src="https://github.com/Reim6118/Issac_Mproject/assets/32570797/e95251a8-a004-4779-b9c9-93060973b566">
 
-![image](https://github.com/Reim6118/Issac_Mproject/assets/32570797/829c3795-cb9f-4c09-a5ee-ff0db78eb802)
+#### Please refer to my thesis for a more detailed explanation. https://koara.lib.keio.ac.jp/xoonips/modules/xoonips/detail.php?koara_id=KO40001001-00002023-1014
 
 
-<img width="523" alt="image" src="https://github.com/Reim6118/Issac_Mproject/assets/32570797/6b524ff8-4f3e-4020-950e-d993604e6538">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
