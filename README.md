@@ -25,7 +25,9 @@
 <img width="1309" alt="Screenshot" src="https://github.com/Reim6118/Issac_Mproject/assets/32570797/256116ac-4b8c-4e7d-bd9d-e68c38769855">
 
 
+## Combination of two models' output
 
+##### With a comparison between the output frames from both visual and audio components, the frames that have overlapping marks are identified. Furthermore, three frames preceding and following each iedentified frames are also considered. Pre-recorded audio that represents the haptic sensation of the impact between racket and shuttle ball is added to those frames. The final output will be a quad-channel mp4 file, with the first two channels containing the original audio, while the latter two channels accommodate the hatic audio.
 
 
 <!-- #### Interface of Ableton Live during manual annotation task 
