@@ -21,7 +21,7 @@
 
 ## Processing Audio Content
 
-##### For audio data, it is passed into a Sed-CRNN model, which is a sound event detection model trained based on convolution recurrent network.
+##### The audio data is first converted into a spectrogram before divided into smaller segments, it is then passed into a Sed-CRNN model, which is a sound event detection model trained based on convolution recurrent network. This model predicts the likelihood of each frame containing the sound of badminton shuttle being hit by a racket. Although the predictions regarding time boundary may not be precise enough to directly determine the exact frames with events, the frames with possibility exceeding 50 percent is marked and used to filter frames after combining with the output from object detection model.
 <img width="1309" alt="Screenshot" src="https://github.com/Reim6118/Issac_Mproject/assets/32570797/256116ac-4b8c-4e7d-bd9d-e68c38769855">
 
 
